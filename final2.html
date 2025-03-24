@@ -22,20 +22,34 @@
     </style>
 </head>
 <body>
-    <h1>POV SOLUTION INVOICE</h1>
+    <h1>POV Solution Skills and Career Employee Invoice</h1>
     <form id="invoice-form">
         <h2>Trainer Information</h2>
+        <label for="emailAddress">Email Address:</label>
+        <input type="email" id="emailAddress" name="emailAddress" required>
+
         <label for="trainerName">Trainer Name:</label>
         <input type="text" id="trainerName" name="trainerName" required>
 
-        <label for="emailAddress">Email Address:</label>
-        <input type="email" id="emailAddress" name="emailAddress" required>
+        <label for="trainerContact">Trainer Contact Number:</label>
+        <input type="text" id="trainerContact" name="trainerContact" required>
 
         <h2>Trainer Details</h2>
         <div id="trainerContainer">
             <div class="trainer">
-                <label for="trainerName1">Trainer Name:</label>
-                <input type="text" id="trainerName1" name="trainerName[]" required>
+                <label for="collegeName1">College Name:</label>
+                <input type="text" id="collegeName1" name="collegeName[]" required>
+
+                <label for="projectTitle1">Project Title:</label>
+                <input type="text" id="projectTitle1" name="projectTitle[]" required>
+
+                <div class="date-selection" id="dateSelectionContainer1">
+                    <div class="date-item">
+                        <input type="date" name="dates[]" required>
+                        <button type="button" class="remove-button" onclick="removeDate(this)">Remove</button>
+                    </div>
+                </div>
+                <button type="button" class="addDateButton" onclick="addDate(1)">Add Date</button>
 
                 <label for="daysWorking1">No of days working:</label>
                 <input type="number" id="daysWorking1" name="daysWorking[]" required>
@@ -49,17 +63,19 @@
     </form>
 
     <div id="invoice" class="invoice hidden">
-        <h2>Invoice</h2>
+        <h2>POV Solution Skills and Career Employee Invoice</h2>
         <h3>Invoice #<span id="invoiceNumber"></span></h3>
-        <p>Date: <span id="invoiceDate"></span></p>
         <div id="invoiceClientInfo">
-            <p>Trainer Name: <span id="displayTrainerName"></span></p>
             <p>Email Address: <span id="displayEmailAddress"></span></p>
+            <p>Trainer Name: <span id="displayTrainerName"></span></p>
+            <p>Trainer Contact: <span id="displayTrainerContact"></span></p>
         </div>
         <table id="invoiceItems">
             <thead>
                 <tr>
-                    <th>Trainer Name</th>
+                    <th>College Name</th>
+                    <th>Project Title</th>
+                    <th>Dates</th>
                     <th>No of days working</th>
                     <th>Per day salary</th>
                     <th>Amount</th>
@@ -68,11 +84,14 @@
             <tbody></tbody>
             <tfoot>
                 <tr>
-                    <td colspan="3">Total</td>
+                    <td colspan="5">Total</td>
                     <td id="totalAmount"></td>
                 </tr>
             </tfoot>
         </table>
+        <div id="invoiceDateSection">
+            <p>Date: <span id="invoiceDate"></span></p>
+        </div>
         <button onclick="downloadPDF()">Download as PDF</button>
     </div>
 
@@ -86,8 +105,19 @@
             const newTrainer = document.createElement('div');
             newTrainer.className = 'trainer';
             newTrainer.innerHTML = `
-                <label for="trainerName${trainerCount}">Trainer Name:</label>
-                <input type="text" id="trainerName${trainerCount}" name="trainerName[]" required>
+                <label for="collegeName${trainerCount}">College Name:</label>
+                <input type="text" id="collegeName${trainerCount}" name="collegeName[]" required>
+
+                <label for="projectTitle${trainerCount}">Project Title:</label>
+                <input type="text" id="projectTitle${trainerCount}" name="projectTitle[]" required>
+
+                <div class="date-selection" id="dateSelectionContainer${trainerCount}">
+                    <div class="date-item">
+                        <input type="date" name="dates[]" required>
+                        <button type="button" class="remove-button" onclick="removeDate(this)">Remove</button>
+                    </div>
+                </div>
+                <button type="button" class="addDateButton" onclick="addDate(${trainerCount})">Add Date</button>
 
                 <label for="daysWorking${trainerCount}">No of days working:</label>
                 <input type="number" id="daysWorking${trainerCount}" name="daysWorking[]" required>
@@ -98,17 +128,37 @@
             trainerContainer.appendChild(newTrainer);
         }
 
+        function addDate(trainerId) {
+            const dateSelectionContainer = document.getElementById(`dateSelectionContainer${trainerId}`);
+            const newDateItem = document.createElement('div');
+            newDateItem.classList.add('date-item');
+            newDateItem.innerHTML = `
+                <input type="date" name="dates[]" required>
+                <button type="button" class="remove-button" onclick="removeDate(this)">Remove</button>
+            `;
+            dateSelectionContainer.appendChild(newDateItem);
+        }
+
+        function removeDate(button) {
+            const dateItem = button.parentElement;
+            dateItem.remove();
+        }
+
         document.getElementById('invoice-form').onsubmit = function(event) {
             event.preventDefault();
 
-            const trainerName = document.getElementById('trainerName').value;
             const emailAddress = document.getElementById('emailAddress').value;
-            const trainerNames = document.querySelectorAll('input[name="trainerName[]"]');
+            const trainerName = document.getElementById('trainerName').value;
+            const trainerContact = document.getElementById('trainerContact').value;
+            const collegeNames = document.querySelectorAll('input[name="collegeName[]"]');
+            const projectTitles = document.querySelectorAll('input[name="projectTitle[]"]');
             const daysWorking = document.querySelectorAll('input[name="daysWorking[]"]');
             const dailySalary = document.querySelectorAll('input[name="dailySalary[]"]');
+            const dateInputs = document.querySelectorAll('input[name="dates[]"]');
 
-            document.getElementById('displayTrainerName').textContent = trainerName;
             document.getElementById('displayEmailAddress').textContent = emailAddress;
+            document.getElementById('displayTrainerName').textContent = trainerName;
+            document.getElementById('displayTrainerContact').textContent = trainerContact;
 
             const today = new Date().toLocaleDateString();
             document.getElementById('invoiceDate').textContent = today;
@@ -117,16 +167,31 @@
             let invoiceItemsHTML = '';
             let totalAmount = 0;
 
-            for (let i = 0; i < trainerNames.length; i++) {
-                const name = trainerNames[i].value;
+            for (let i = 0; i < collegeNames.length; i++) {
+                const collegeName = collegeNames[i].value;
+                const projectTitle = projectTitles[i].value;
                 const days = daysWorking[i].value;
                 const salary = dailySalary[i].value;
+                const dates = [];
+                let dateString = '';
+
+                // Collect all dates for the current trainer
+                for (let j = i * 1; j < (i + 1) * dateInputs.length; j++) {
+                    if (dateInputs[j].value) {
+                        dates.push(dateInputs[j].value);
+                    }
+                }
+
+                dateString = dates.join(', ');
+
                 const amount = days * salary;
                 totalAmount += amount;
 
                 invoiceItemsHTML += `
                     <tr>
-                        <td>${name}</td>
+                        <td>${collegeName}</td>
+                        <td>${projectTitle}</td>
+                        <td>${dateString}</td>
                         <td>${days}</td>
                         <td>${salary}</td>
                         <td>${amount.toFixed(2)}</td>
